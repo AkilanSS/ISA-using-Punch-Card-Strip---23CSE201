@@ -2,14 +2,20 @@
 #define SENSORREADER_H
 
 enum CMD{
+    NOP,
+    HALT,
     MOV,
     CPY,
-    JMP,
     ADD,
-    SUB
+    INC,
+    DEC,
+    MULT,
+    JMP,
+    CMP
 };
 
 int serializeInput(const int* L1, const int* L2, const int* L3, const int* L4, const int* AUX);
-CMD selectCmd(int serializedInput);
+CMD selectCmd(int serializedInput){
+};
 
 #endif

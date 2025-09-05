@@ -4,5 +4,4 @@
 
 void processCmd(CMD cmd);
 
-
 #endif
