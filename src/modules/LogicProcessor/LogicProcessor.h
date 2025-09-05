@@ -5,5 +5,4 @@
 void processCmd(enum CMD cmd);
 void updateMOV(int registerA, int registerB);
 
-
 #endif
