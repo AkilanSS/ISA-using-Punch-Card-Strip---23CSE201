@@ -10,6 +10,6 @@ enum CMD{
 };
 
 int serializeInput(const int* L1, const int* L2, const int* L3, const int* L4, const int* AUX);
-CMD selectCmd(int serializedInput);
+enum CMD selectCmd(int serializedInput);
 
 #endif

@@ -2,7 +2,8 @@
 #define LOGICPROCESSOR_H
 #include "../SensorReader/SensorReader.h"
 
-void processCmd(CMD cmd);
+void processCmd(enum CMD cmd);
+void updateMOV(int registerA, int registerB);
 
 
 #endif
