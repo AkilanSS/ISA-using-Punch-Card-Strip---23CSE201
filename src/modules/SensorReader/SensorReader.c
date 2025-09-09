@@ -22,4 +22,3 @@ int serializeInput(const int* L1, const int* L2, const int* L3, const int* L4,co
 //aux will be the last digit denoted by 0 or 1
     return command;
 }
-
