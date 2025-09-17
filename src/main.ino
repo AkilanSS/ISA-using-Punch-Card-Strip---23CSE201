@@ -1,28 +1,19 @@
-#include "modules/OutputProcessor/OutputProcessor.h"
-#include "modules/SensorReader/SensorReader.h"
-#include "modules/StepperControl/StepperControl.h"
-#include "modules/LogicProcessor/LogicProcessor.h"
+#include <Stepper.h>
 
-#define NUM_REGISTERS 16
+const int stepsPerRevolution = 2048;
 
-int registers[NUM_REGISTERS];
-int programCounter;
-
-void setup()
-{
-  for (int i = 0; i < NUM_REGISTERS; i++)
-  {
-    registers[i] = 0;
-  }
-
-  programCounter = 0;
-  pinMode(LED_BUILTIN, OUTPUT);
+Stepper myStepper = Stepper(stepsPerRevolution, 8, 10, 9, 11);
+Stepper myStepper2 = Stepper(stepsPerRevolution, 8, 9, 10, 11);
+void setup() {
+  // Nothing to do (Stepper Library sets pins as outputs)
 }
 
-// The loop() function runs over and over again forever.
 void loop() {
-  digitalWrite(LED_BUILTIN, HIGH);   // Turn the LED on (HIGH is the voltage level)
-  delay(1000);                      // Wait for a second (1000 milliseconds)
-  digitalWrite(LED_BUILTIN, LOW);    // Turn the LED off by making the voltage LOW
-  delay(1000);                      // Wait for a second
+  myStepper2.setSpeed(10);
+  myStepper2.step(-stepsPerRevolution);
+  delay(1000);
+
+  myStepper.setSpeed(10);
+  myStepper.step(-stepsPerRevolution);
+  delay(1000);
 }

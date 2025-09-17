@@ -1,6 +1,8 @@
 #ifndef STEPPERCONTROL_H
 #define STEPPERCONTROL_H
 
+#include <stdbool.h>
+
 enum Direction
 {
     Forward,
@@ -8,7 +10,7 @@ enum Direction
 };
 
 float optimalTheta(int totalRows, float sizeofRows, float discRadius);
-void actuateStepper(int optimalTheta, bool stepFlag = true, Direction direction = Forward, int step = 0);
+void actuateStepper(int optimalTheta, _Bool stepFlag, enum Direction direction, int step);
 
 
 #endif
