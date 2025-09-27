@@ -1,28 +1,86 @@
-#include "modules/OutputProcessor/OutputProcessor.h"
-#include "modules/SensorReader/SensorReader.h"
-#include "modules/StepperControl/StepperControl.h"
-#include "modules/LogicProcessor/LogicProcessor.h"
+#include <Stepper.h>
 
-#define NUM_REGISTERS 16
+const int stepsPerRevolution = 2048;
 
-int registers[NUM_REGISTERS];
-int programCounter;
+Stepper myStepper = Stepper(stepsPerRevolution, 8, 10, 9, 11);
 
-void setup()
-{
-  for (int i = 0; i < NUM_REGISTERS; i++)
-  {
-    registers[i] = 0;
-  }
+enum Direction { UP, DOWN, HALT, STEP, STEPB };
 
-  programCounter = 0;
-  pinMode(LED_BUILTIN, OUTPUT);
+enum Direction rollDir = HALT;
+
+String cmd;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(A0, INPUT);
+  pinMode(A1, INPUT);
+  pinMode(A2, INPUT);
+  pinMode(A3, INPUT);
+  pinMode(A4, INPUT);
+  cmd.reserve(16);
 }
 
-// The loop() function runs over and over again forever.
 void loop() {
-  digitalWrite(LED_BUILTIN, HIGH);   // Turn the LED on (HIGH is the voltage level)
-  delay(1000);                      // Wait for a second (1000 milliseconds)
-  digitalWrite(LED_BUILTIN, LOW);    // Turn the LED off by making the voltage LOW
-  delay(1000);                      // Wait for a second
+  Serial.print(1023 - analogRead(A0));
+  Serial.print(" ");
+  Serial.print(1023 - analogRead(A1));
+  Serial.print(" ");
+  Serial.print(1023 - analogRead(A2));
+  Serial.print(" ");
+  Serial.print(1023 - analogRead(A3));
+  Serial.print(" ");
+  Serial.print(1023 - analogRead(A4));
+  Serial.println(" ");
+
+  while (Serial.available() > 0) {
+    char c = Serial.read();
+    if (c == '\n') {
+      if (cmd == "HALT") {
+        rollDir = HALT;
+        Serial.println("State changed to: HALT");
+      } else if (cmd == "UP") {
+        rollDir = UP;
+        Serial.println("State changed to: UP");
+      } else if (cmd == "DOWN") {
+        rollDir = DOWN;
+        Serial.println("State changed to: DOWN");
+      } else if (cmd == "MOV") {
+        rollDir = STEP;
+        Serial.println("State changed to: STEP");
+      } else if (cmd == "MOVB") {
+        rollDir = STEPB;
+        Serial.println("State changed to: STEP");
+      }
+      cmd = "";
+    } else {
+
+      cmd += c;
+    }
+  }
+
+  switch (rollDir) {
+    case UP:
+      myStepper.setSpeed(10);
+      myStepper.step(-stepsPerRevolution);
+      break;
+
+    case DOWN:
+      myStepper.setSpeed(10);
+      myStepper.step(stepsPerRevolution);
+      break;
+
+    case STEP:
+      myStepper.setSpeed(10);
+      myStepper.step(100);
+      rollDir = HALT;
+      break;
+    case STEPB:
+      myStepper.setSpeed(10);
+      myStepper.step(-100);
+      rollDir = HALT;
+      break;
+
+    case HALT:
+      break;
+  }
 }

@@ -1,7 +1,7 @@
 #ifndef SENSORREADER_H
 #define SENSORREADER_H
 
-enum CMD{
+enum CMD {
     MOV,
     CPY,
     JMP,
