@@ -1,24 +1,15 @@
 #include "../SensorReader/SensorReader.h"
+#include <stdint.h>
 
-enum CMD selectCmd(int serializedInput)
-{
+int serializeInput(int16_t L1, int16_t L2, int16_t L3, int16_t L4, int16_t AUX) {
     
-};
+    const uint16_t threshold = 500;
+    int8_t b1 = (L1 < threshold) ? 1 : 0;  
+    int8_t b2 = (L2 < threshold) ? 1 : 0;
+    int8_t b3 = (L3 < threshold) ? 1 : 0;
+    int8_t b4 = (L4 < threshold) ? 1 : 0;
+    int8_t aux = (AUX < threshold) ? 1 : 0;
 
-
-int serializeInput(const int* L1, const int* L2, const int* L3, const int* L4,const int* AUX,int threshold) {
-    
-
-    
-    int b1 = (*L1 > threshold) ? 1 : 0;  
-    int b2 = (*L2 > threshold) ? 1 : 0;
-    int b3 = (*L3 > threshold) ? 1 : 0;
-    int b4 = (*L4 > threshold) ? 1 : 0;
-    int aux = (*AUX > threshold) ? 1 : 0;
-
-    
-    int command = (aux*1)+((b1*8)+(b2*4)+(b3*2)+(b4*1))*10;
-    
-//aux will be the last digit denoted by 0 or 1
+    int command = b1 * 10000 + b2 * 1000 + b3 * 100 + b4 * 10 + aux;
     return command;
 }
