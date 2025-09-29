@@ -1,28 +1,38 @@
-#include "modules/OutputProcessor/OutputProcessor.h"
-#include "modules/SensorReader/SensorReader.h"
-#include "modules/StepperControl/StepperControl.h"
-#include "modules/LogicProcessor/LogicProcessor.h"
+#include <Stepper.h>
+const int stepsPerRevolution = 2048;
 
-#define NUM_REGISTERS 16
+Stepper myStepper = Stepper(stepsPerRevolution, 8, 10, 9, 11);
+int ldrSensors[5] = {A0, A1, A2, A3, A4};
 
-int registers[NUM_REGISTERS];
-int programCounter;
+enum Direction { UP, DOWN, HALT, STEP, STEPB };
+enum Direction rollDir;
 
-void setup()
-{
-  for (int i = 0; i < NUM_REGISTERS; i++)
-  {
-    registers[i] = 0;
-  }
-
-  programCounter = 0;
-  pinMode(LED_BUILTIN, OUTPUT);
+enum StateMachine {
+	FOUND_FUNCTION,
+	SEEK_FUNCTION,
+	SEEK_DATA,
+	FOUND_DATA,
+	SEEK_PARAM,
+	FOUND_PARAM,
+	SEEK_REGISTER,
+	FOUND_REGISTER,
+	
 }
 
-// The loop() function runs over and over again forever.
+String cmd;
+
+void setup() {
+	Serial.begin(9600);
+	pinMode(A0, INPUT);
+	pinMode(A1, INPUT);
+	pinMode(A2, INPUT);
+	pinMode(A3, INPUT);
+	pinMode(A4, INPUT);
+	cmd.reserve(16);
+
+	rollDir = HALT;
+}
+
 void loop() {
-  digitalWrite(LED_BUILTIN, HIGH);   // Turn the LED on (HIGH is the voltage level)
-  delay(1000);                      // Wait for a second (1000 milliseconds)
-  digitalWrite(LED_BUILTIN, LOW);    // Turn the LED off by making the voltage LOW
-  delay(1000);                      // Wait for a second
+
 }
