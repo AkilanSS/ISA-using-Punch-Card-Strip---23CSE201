@@ -1,6 +1,6 @@
 # Punch-Card Strip Instruction Set Architecture (ISA) on Arduino
 
-## Project Devolpers
+## Project Developers
 Adhitya Ranjith - CB.SC.U4CSE24703 \
 Adwit Singh - CB.SC.U4CSE24704 \
 Akilan S S - CB.SC.U4CSE24707 \
