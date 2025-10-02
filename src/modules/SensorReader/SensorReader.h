@@ -1,8 +1,5 @@
 #ifndef SENSORREADER_H
 #define SENSORREADER_H
-
-
-
 #include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
@@ -14,7 +11,7 @@ enum CMD {
     CPY,
     ADD,
     INC,
-    DEC,
+    DEX,
     MULT,
     JMP,
     CMP

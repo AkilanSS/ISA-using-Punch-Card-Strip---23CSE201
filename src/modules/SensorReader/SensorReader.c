@@ -11,7 +11,7 @@ enum CMD {
   CPY = 4,
   ADD = 12,
   INC = 10,
-  DEC = 9,
+  DEX = 9,
   MULT = 5,
   JMP = 11,
   CMP = 13,
@@ -22,7 +22,7 @@ enum CMD selectCmd(int serializedInput) {
   enum CMD opCodeMap[16] = {
       HALT, INVALID, INVALID, INVALID,
       CPY,  MULT,    INC,     INVALID,
-      MOV,  DEC,     INVALID, JMP,
+      MOV,  DEX,     INVALID, JMP,
       ADD,  CMP,     INVALID, NOP,
   };
   if (serializedInput < 0 || serializedInput > 15) {
@@ -43,3 +43,5 @@ int serializeInput(int16_t L1, int16_t L2, int16_t L3, int16_t L4, int16_t AUX) 
     int command = b1 * 10000 + b2 * 1000 + b3 * 100 + b4 * 10 + aux;
     return command;
 }
+
+#endif
