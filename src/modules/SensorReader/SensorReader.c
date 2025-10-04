@@ -8,7 +8,7 @@ int serializeInput(int16_t L1, int16_t L2, int16_t L3, int16_t L4) {
     int8_t b3 = (L3 < LDR_THRESHOLD) ? 1 : 0;
     int8_t b4 = (L4 < LDR_THRESHOLD) ? 1 : 0;
 
-    int commandValue = (b1 << 3) | (b2 << 2) | (b3 << 1) | b4;
+    int commandValue = (b1 * 8) + (b2 * 4) + (b3 * 1) + b4;
     return commandValue;
 }
 
