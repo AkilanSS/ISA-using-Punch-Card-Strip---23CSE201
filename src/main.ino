@@ -1,4 +1,5 @@
 #include <Stepper.h>
+#include "./modules/SensorReader/SensorReader.h"
 
 const int LIGHT_THRESHOLD = 550;
 const int SEARCH_INCREMENT_STEPS = -10;
@@ -14,10 +15,11 @@ int ldrSensors[5] = {A0, A1, A2, A3, A4};
 struct CPUState {
   int registers[5];
   int programCounter;
+  bool zero_flag;
 };
 
 struct Instruction {
-  int opcode;
+  enum CMD opcode;
   int operand1;
   int operand2;
 };
@@ -30,7 +32,9 @@ int stepsToMove = 0;
 CPUState cpuState;
 
 bool findNextHole();
+bool isAnyHoleDetected();
 void executeInstruction(Instruction* instr, CPUState* cpu);
+void debug_print();
 
 void setup() {
   Serial.begin(9600);
@@ -89,41 +93,46 @@ int fetchOperandValue() {
 }
 
 Instruction decodeInstruction() {
-    Instruction decodedInstr = {0, 0, 0};
-    String rawOpcodeRow = readRowDataString();
-    decodedInstr.opcode = binToDec(rawOpcodeRow.substring(0, 4));
+    Instruction decodedInstr = {CMD_NOP, 0, 0};
+
+    int val1 = 1023 - analogRead(ldrSensors[0]);
+    int val2 = 1023 - analogRead(ldrSensors[1]);
+    int val3 = 1023 - analogRead(ldrSensors[2]);
+    int val4 = 1023 - analogRead(ldrSensors[3]);
+
+    int opcodeValue = serializeInput(val1, val2, val3, val4);
+    enum CMD command = selectCmd(opcodeValue);
+    decodedInstr.opcode = command;
 
     Serial.println("------------------------------------");
-    Serial.print("PC: " + String(cpuState.programCounter) + " | " + rawOpcodeRow + " -> ");
+    Serial.print("PC: " + String(cpuState.programCounter) + " | Opcode Val: " + String(opcodeValue));
 
-    switch (decodedInstr.opcode) {
-        case 15:
-        case 0:
-            Serial.println("OP: " + String(decodedInstr.opcode == 0 ? "HALT" : "NOP"));
+    switch (command) {
+        case CMD_NOP:
+        case CMD_HALT:
+            Serial.println(" -> CMD: " + String(command == CMD_HALT ? "HALT" : "NOP"));
             break;
-        case 8:
-        case 12:
-        case 13:
-        case 5:
-            Serial.println("OP: Two Register");
+        case CMD_MOV:
+        case CMD_ADDR:
+        case CMD_CMP:
+        case CMD_MULTR:
             decodedInstr.operand1 = fetchOperandValue();
             decodedInstr.operand2 = fetchOperandValue();
             break;
-        case 4:
-        case 2:
-        case 7:
-            Serial.println("OP: Register, Immediate");
+        case CMD_CPY:
+        case CMD_ADDI:
+        case CMD_MULTI:
             decodedInstr.operand1 = fetchOperandValue();
             decodedInstr.operand2 = fetchOperandValue();
             break;
-        case 6:
-        case 9:
-        case 11:
-            Serial.println("OP: Single Operand");
+        case CMD_INC:
+        case CMD_DEC:
+        case CMD_JMP:
             decodedInstr.operand1 = fetchOperandValue();
             break;
-        default:
-            Serial.println("DATA / UNKNOWN");
+        case CMD_INVALID:
+            Serial.println(" -> CMD: INVALID");
+            currentState = HALT;
             break;
     }
     return decodedInstr;
@@ -131,11 +140,8 @@ Instruction decodeInstruction() {
 
 void processCycle() {
     Instruction currentInstruction = decodeInstruction();
-
     if (currentState == HALT) return;
-    
     executeInstruction(&currentInstruction, &cpuState);
-    
     if (currentState == RUNNING) {
         if (findNextHole()) {
             cpuState.programCounter++;
@@ -150,36 +156,86 @@ void processCycle() {
 void executeInstruction(Instruction* instr, CPUState* cpu) {
     Serial.print("=> EXECUTING: ");
     int reg1_idx, reg2_idx;
-
     auto toIdx = [](int regId) { return regId - 1; };
 
     switch (instr->opcode) {
-        case 15:
+        case CMD_NOP:
             Serial.println("NOP. Doing nothing.");
             break;
-        case 0:
+        case CMD_HALT:
             Serial.println("HALT. Stopping execution.");
             currentState = HALT;
             break;
-        case 4:
+        case CMD_CPY:
             reg1_idx = toIdx(instr->operand1);
             cpu->registers[reg1_idx] = instr->operand2;
-            Serial.println("CPY " + String(instr->operand2) + " into " + getRegisterName(instr->operand1));
+            Serial.println("CPY " + String(instr->operand2) + " -> " + getRegisterName(instr->operand1));
             break;
-        case 2:
+        case CMD_MOV:
+            reg1_idx = toIdx(instr->operand1);
+            reg2_idx = toIdx(instr->operand2);
+            cpu->registers[reg2_idx] = cpu->registers[reg1_idx];
+            Serial.println("MOV " + getRegisterName(instr->operand1) + " -> " + getRegisterName(instr->operand2));
+            break;
+        case CMD_ADDR:
+            reg1_idx = toIdx(instr->operand1);
+            reg2_idx = toIdx(instr->operand2);
+            cpu->registers[reg2_idx] += cpu->registers[reg1_idx];
+            Serial.println("ADDR " + getRegisterName(instr->operand1) + " -> " + getRegisterName(instr->operand2));
+            break;
+        case CMD_ADDI:
             reg1_idx = toIdx(instr->operand1);
             cpu->registers[reg1_idx] += instr->operand2;
-             Serial.println("ADDI " + String(instr->operand2) + " to " + getRegisterName(instr->operand1));
+            Serial.println("ADDI " + String(instr->operand2) + " -> " + getRegisterName(instr->operand1));
+            break;
+        case CMD_MULTR:
+            reg1_idx = toIdx(instr->operand1);
+            reg2_idx = toIdx(instr->operand2);
+            cpu->registers[reg2_idx] *= cpu->registers[reg1_idx];
+            Serial.println("MULTR " + getRegisterName(instr->operand1) + " -> " + getRegisterName(instr->operand2));
+            break;
+        case CMD_MULTI:
+            reg1_idx = toIdx(instr->operand1);
+            cpu->registers[reg1_idx] *= instr->operand2;
+            Serial.println("MULTI " + String(instr->operand2) + " -> " + getRegisterName(instr->operand1));
+            break;
+        case CMD_INC:
+            reg1_idx = toIdx(instr->operand1);
+            cpu->registers[reg1_idx]++;
+            Serial.println("INC " + getRegisterName(instr->operand1));
+            break;
+        case CMD_DEC:
+            reg1_idx = toIdx(instr->operand1);
+            cpu->registers[reg1_idx]--;
+            Serial.println("DEC " + getRegisterName(instr->operand1));
+            break;
+        case CMD_JMP:
+            if (cpu->zero_flag) {
+                cpu->programCounter = instr->operand1 - 1;
+                Serial.println("JMP to Address " + String(instr->operand1) + " (ZeroFlag was true)");
+            } else {
+                Serial.println("JMP ignored (ZeroFlag was false)");
+            }
+            break;
+        case CMD_CMP:
+            reg1_idx = toIdx(instr->operand1);
+            reg2_idx = toIdx(instr->operand2);
+            cpu->zero_flag = (cpu->registers[reg1_idx] == cpu->registers[reg2_idx]);
+            Serial.println("CMP " + getRegisterName(instr->operand1) + ", " + getRegisterName(instr->operand2) + " (ZeroFlag=" + String(cpu->zero_flag) + ")");
+            break;
+        case CMD_INVALID:
+            Serial.println("INVALID OPCODE. Halting.");
+            currentState = HALT;
             break;
         default:
-            Serial.println("Instruction with opcode " + String(instr->opcode) + " not yet implemented.");
+            Serial.println("Unknown Opcode (" + String(instr->opcode) + "). Halting.");
+            currentState = HALT;
             break;
     }
 }
 
 void loop() {
   handleSerialCommands();
-
   switch (currentState) {
     case RUNNING:
       processCycle();
@@ -205,16 +261,22 @@ bool findNextHole() {
     myStepper.step(SEARCH_INCREMENT_STEPS);
     stepsSearched += abs(SEARCH_INCREMENT_STEPS);
     delay(20); 
-
-    for (int i = 0; i < 5; i++) {
-        if ((1023 - analogRead(ldrSensors[i])) < LIGHT_THRESHOLD) {
-            myStepper.step(CENTERING_ADJUSTMENT_STEPS);
-            return true; 
-        }
+    if (isAnyHoleDetected()) {
+      myStepper.step(CENTERING_ADJUSTMENT_STEPS);
+      return true; 
     }
   }
   Serial.println("FAILSAFE: Search exceeded MAX_SEARCH_STEPS.");
   return false;
+}
+
+bool isAnyHoleDetected() {
+  for (int i = 0; i < 5; i++) {
+    if ((1023 - analogRead(ldrSensors[i])) < LIGHT_THRESHOLD) {
+      return true; 
+    }
+  }
+  return false; 
 }
 
 void handleSerialCommands() {
@@ -225,6 +287,7 @@ void handleSerialCommands() {
       if (cmd == "start") {
         Serial.println("Command Received: START");
         cpuState.programCounter = 0;
+        cpuState.zero_flag = false;
         for(int i = 0; i < 5; i++) { cpuState.registers[i] = 0; }
         currentState = RUNNING;
       } else if (cmd == "stop") {
@@ -252,6 +315,7 @@ void debug_print() {
     Serial.println("\n--- DEBUG INFO ---");
     Serial.println("Current State: " + String(currentState == HALT ? "HALT" : "RUNNING"));
     Serial.println("PC: " + String(cpuState.programCounter));
+    Serial.println("Zero Flag: " + String(cpuState.zero_flag));
     Serial.println("Registers:");
     for (int i = 0; i < 5; i++) {
         Serial.println("  " + getRegisterName(i + 1) + ": " + String(cpuState.registers[i]));
